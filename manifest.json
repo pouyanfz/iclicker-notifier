@@ -3,24 +3,30 @@
   "name": "iClicker Notifier",
   "version": "1.0",
   "description": "Plays a sound or shows a notification when a new iClicker question appears.",
-  "permissions": ["notifications"],
+  "permissions": ["notifications", "alarms", "scripting", "tabs"],
   "background": {
     "service_worker": "background.js"
   },
+  "action": {
+    "default_icon": {
+      "16": "icon.png",
+      "48": "icon.png",
+      "128": "icon.png"
+    },
+    "default_title": "iClicker Notifier"
+  },
   "content_scripts": [
-  {
-    "matches": [
-      "*://*.iclicker.com/*",
-      "*://*.iclickercloud.com/*",
-      "*://*/*"
-    ],
-    "js": ["content.js"]
-  }
-]
-,
+    {
+      "matches": [
+        "*://*.iclicker.com/*",
+        "*://*.iclickercloud.com/*",
+      ],
+      "js": ["content.js"]
+    }
+  ],
   "web_accessible_resources": [
     {
-      "resources": ["notify.wav", "icon.png"],
+      "resources": ["notify.wav", "disconnect.wav", "icon.png"],
       "matches": ["<all_urls>"]
     }
   ]

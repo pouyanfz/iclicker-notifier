@@ -1,4 +1,6 @@
-// Watch for new question elements
+// ======================
+// 1. Question detection
+// ======================
 function playSound() {
   const audio = new Audio(chrome.runtime.getURL('notify.wav'));
   audio.play().catch(() => console.log('Sound blocked by autoplay rules'));
@@ -13,10 +15,9 @@ function triggerNotification() {
   chrome.runtime.sendMessage({ type: 'question_detected' });
 }
 
-// Observe DOM for new question elements
+// Observe DOM for new question or idle screen changes
 const observer = new MutationObserver((mutations) => {
   for (const m of mutations) {
-    // detect addition of question containers
     for (const node of m.addedNodes) {
       if (node.nodeType === Node.ELEMENT_NODE) {
         if (
@@ -33,16 +34,14 @@ const observer = new MutationObserver((mutations) => {
       }
     }
 
-    // detect when "You're checked in!" view disappears
-    if (m.removedNodes.length > 0) {
-      for (const node of m.removedNodes) {
-        if (
-          node.nodeType === Node.ELEMENT_NODE &&
-          node.matches('.unified-home-container')
-        ) {
-          triggerNotification();
-          return;
-        }
+    // detect when “checked in” view disappears
+    for (const node of m.removedNodes) {
+      if (
+        node.nodeType === Node.ELEMENT_NODE &&
+        node.matches('.unified-home-container')
+      ) {
+        triggerNotification();
+        return;
       }
     }
   }
@@ -52,25 +51,35 @@ observer.observe(document.body, {
   childList: true,
   subtree: true,
   characterData: true,
-  attributes: true
+  attributes: true,
 });
 
-observer.observe(document.body, {
-  childList: true,
-  subtree: true,
-  characterData: true,
-  attributes: true
-});
-
-
-// Observe both child and attribute changes
-observer.observe(document.body, {
-  childList: true,
-  subtree: true,
-  characterData: true,
-  attributes: true
-});
-
-
-observer.observe(document.body, { childList: true, subtree: true });
 console.log('iClicker Notifier active');
+
+// ==============================
+// 2. Heartbeat / idle detection
+// ==============================
+let lastPing = Date.now();
+
+// Check every minute whether a heartbeat has occurred recently
+setInterval(() => {
+  if (Date.now() - lastPing > 300000) { // >5 minutes with no ping
+    new Audio(chrome.runtime.getURL('disconnect.wav')).play();
+    console.warn('iClicker appears idle or disconnected');
+    chrome.runtime.sendMessage({ type: 'session_idle' });
+  }
+}, 60000);
+
+// Hook into fetch to monitor iClicker heartbeat requests
+const oldFetch = window.fetch;
+window.fetch = async (...args) => {
+  try {
+    if (typeof args[0] === 'string' && args[0].includes('/student/course/status')) {
+      lastPing = Date.now();
+      console.log('Heartbeat detected at', new Date().toISOString());
+    }
+  } catch (err) {
+    console.error('Fetch monitor error', err);
+  }
+  return oldFetch(...args);
+};
