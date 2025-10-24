@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "iClicker Notifier",
+  "version": "1.0",
+  "description": "Plays a sound or shows a notification when a new iClicker question appears.",
+  "permissions": ["notifications"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+  {
+    "matches": [
+      "*://*.iclicker.com/*",
+      "*://*.iclickercloud.com/*",
+      "*://*/*"
+    ],
+    "js": ["content.js"]
+  }
+]
+,
+  "web_accessible_resources": [
+    {
+      "resources": ["notify.wav", "icon.png"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}
