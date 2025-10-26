@@ -9,6 +9,11 @@
         "scripting",
         "tabs"
     ],
+    "host_permissions": [
+        "*://student.iclicker.com/*",
+        "*://*.iclicker.com/*",
+        "*://*.iclickercloud.com/*"
+    ],
     "background": {
         "service_worker": "background.js"
     },
@@ -23,6 +28,7 @@
     "content_scripts": [
         {
             "matches": [
+                "*://student.iclicker.com/*",
                 "*://*.iclicker.com/*",
                 "*://*.iclickercloud.com/*"
             ],
