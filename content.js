@@ -54,6 +54,7 @@ function playSound(file) {
     try {
         const path = safeGetURL(file);
         const audio = new Audio(path);
+        console.log("New question popped");
         audio.play().catch(() => console.log('Sound blocked by autoplay rules'));
     } catch (err) {
         console.error('chrome.runtime unavailable:', err);
@@ -123,20 +124,26 @@ observer.observe(document.body, {
 console.log('iClicker Notifier active');
 
 // ==============================
-// 2. Heartbeat / idle detection
+// 2. Heartbeat / idle detection (robust)
 // ==============================
+
 let lastPing = Date.now();
+let idleTimer = null;
+const IDLE_THRESHOLD_MS = 8 * 60 * 1000; // 8 minutes
 
-// -------- Check every minute for idle state --------
-setInterval(() => {
-    if (Date.now() - lastPing > 300000) { // >5 minutes with no ping
+function resetIdleTimer() {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => {
+        console.warn('No heartbeat detected for over 8 minutes — likely disconnected');
         playDisconnectSound();
-        console.warn('iClicker appears idle or disconnected');
         safeSendMessage({ type: 'session_idle' });
-    }
-}, 60000);
+    }, IDLE_THRESHOLD_MS);
+}
 
-// -------- Hook into fetch to monitor heartbeat --------
+// Initialize once
+resetIdleTimer();
+
+// Hook into fetch to monitor iClicker heartbeat requests
 const oldFetch = window.fetch;
 window.fetch = async (...args) => {
     try {
@@ -147,7 +154,8 @@ window.fetch = async (...args) => {
                 url.includes('/reactions/status')
             ) {
                 lastPing = Date.now();
-                console.log('Heartbeat detected from', url, 'at', new Date().toISOString());
+                console.debug('Heartbeat detected:', new Date().toLocaleTimeString(), 'from', url);
+                resetIdleTimer();
             }
         }
     } catch (err) {
